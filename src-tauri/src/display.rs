@@ -1,4 +1,4 @@
-use crate::policy::{render_size, RESOLUTIONS};
+use crate::policy::{render_size, target_fullscreen, RESOLUTIONS};
 use serde::{Deserialize, Serialize};
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
 
@@ -50,7 +50,13 @@ pub fn read(window: &WebviewWindow) -> Result<DisplayState, String> {
         .map(|m| {
             RESOLUTIONS
                 .iter()
-                .filter(|(w, h)| *w <= m.size().width && *h <= m.size().height)
+                .filter(|(w, h)| {
+                    let scale = m.scale_factor();
+                    *w as f64 >= 960.0 * scale
+                        && *h as f64 >= 540.0 * scale
+                        && *w <= m.size().width
+                        && *h as f64 <= m.size().height as f64 - 60.0 * scale
+                })
                 .map(|(w, h)| format!("{w}x{h}"))
                 .collect()
         })
@@ -109,6 +115,11 @@ pub fn apply(window: &WebviewWindow, patch: DisplayPatch) -> Result<DisplayState
     if patch.monitor.is_some_and(|i| i >= monitors.len()) {
         return Err("Monitor is no longer available".into());
     }
+    let fullscreen = target_fullscreen(
+        patch.mode.as_deref(),
+        patch.size.is_some(),
+        window.is_fullscreen().map_err(|e| e.to_string())?,
+    );
     if let Some(index) = patch.monitor {
         window.set_fullscreen(false).map_err(|e| e.to_string())?;
         let m = &monitors[index];
@@ -131,8 +142,25 @@ pub fn apply(window: &WebviewWindow, patch: DisplayPatch) -> Result<DisplayState
             .map_err(|e| e.to_string())?;
         window.center().map_err(|e| e.to_string())?;
     }
-    if patch.mode.as_deref() == Some("fullscreen") {
+    if fullscreen {
         window.set_fullscreen(true).map_err(|e| e.to_string())?;
     }
     read(window)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn window_patch_rejects_unrelated_commands_and_invalid_monitor_types() {
+        for value in [
+            r#"{"path":"/tmp/game"}"#,
+            r#"{"monitor":-1}"#,
+            r#"{"size":0}"#,
+        ] {
+            assert!(serde_json::from_str::<DisplayPatch>(value).is_err());
+        }
+        assert!(serde_json::from_str::<DisplayPatch>(r#"{"mode":"window","monitor":0}"#).is_ok());
+    }
 }

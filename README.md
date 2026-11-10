@@ -56,3 +56,26 @@ service and Apple Developer signing require separately supplied credentials.
 2. Test URL/input boundaries; add the desktop bridge, native menus and persistence.
 3. Test and build; verify the loaded game and window controls in the native app.
 4. Package an ad-hoc signed app, source archive and verified DMG.
+
+
+## Release verification (2026-11-10)
+
+- Upstream main: `219162945987c3b8c95699c3f84bdc758926f1a3`.
+- Rust 1.99.1; Tauri 2.12.5; Tauri CLI 2.12.4; target `aarch64-apple-darwin`.
+- 4 Rust tests and 4 JS bridge tests passed; Clippy passed with warnings denied.
+- npm audit: no vulnerabilities. RustSec audit: no vulnerabilities; five advisory
+  warnings in cross-platform lockfile dependencies were checked against the
+  Apple Silicon build graph and none of those packages is included on macOS.
+- Native runtime: official online game v0.9.23 loaded, guest entry reached starter
+  selection, and F11 fullscreen toggling worked. The running test window was left
+  available for use. No FPS improvement or long-session stability is claimed.
+- Monitor selection on a second physical screen, account login with a real account,
+  co-op, gamepad and long-session gameplay have not been manually verified.
+- App and DMG verification results are recorded with the delivered build metadata.
+- Ad-hoc local signature, without Apple Developer ID notarization. On a Mac that
+  blocks first launch, use System Settings → Privacy & Security → Open Anyway.
+- The app is a separate client: existing Electron guest sessions are not imported.
+  Registered users can sign into the same game service themselves.
+
+The source archive contains this entire standalone `rust-macos` project, including
+both dependency lockfiles and icons; it does not require the Electron project to build.

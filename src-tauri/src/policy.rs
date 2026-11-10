@@ -19,6 +19,14 @@ pub fn render_size(value: &str) -> Option<(u32, u32)> {
     RESOLUTIONS.contains(&size).then_some(size)
 }
 
+pub fn target_fullscreen(mode: Option<&str>, resizing: bool, current: bool) -> bool {
+    match mode {
+        Some("fullscreen") => true,
+        Some("window") => false,
+        _ => current && !resizing,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -52,5 +60,13 @@ mod tests {
         ] {
             assert_eq!(render_size(value), None, "{value}");
         }
+    }
+
+    #[test]
+    fn monitor_changes_preserve_fullscreen_but_window_sizes_leave_it() {
+        assert!(target_fullscreen(None, false, true));
+        assert!(!target_fullscreen(None, true, true));
+        assert!(!target_fullscreen(Some("window"), false, true));
+        assert!(target_fullscreen(Some("fullscreen"), false, false));
     }
 }
