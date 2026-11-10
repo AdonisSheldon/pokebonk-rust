@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod audio;
 mod display;
 mod policy;
 
@@ -155,6 +156,7 @@ fn main() {
                 .build(),
         )
         .manage(ExitState::default())
+        .manage(audio::FocusAudio::default())
         .invoke_handler(tauri::generate_handler![
             display,
             set_display,
@@ -200,28 +202,40 @@ fn main() {
             let navigation_app = app.handle().clone();
             let popup_app = app.handle().clone();
             // https://docs.rs/tauri/2.12.5/tauri/webview/struct.WebviewWindowBuilder.html
-            tauri::WebviewWindowBuilder::new(app, "main", WebviewUrl::External(GAME.parse()?))
-                .title("PokéBonk — Rust")
-                .inner_size(1280.0, 800.0)
-                .min_inner_size(960.0, 540.0)
-                .center()
-                .initialization_script(include_str!("../bridge.js"))
-                .background_color(tauri::webview::Color(26, 22, 48, 255))
-                .disable_drag_drop_handler()
-                .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled)
-                .on_navigation(move |url| {
-                    if is_game(url) {
-                        true
-                    } else {
-                        open_external(&navigation_app, url);
-                        false
+            let window =
+                tauri::WebviewWindowBuilder::new(app, "main", WebviewUrl::External(GAME.parse()?))
+                    .title("PokéBonk — Rust")
+                    .inner_size(1280.0, 800.0)
+                    .min_inner_size(960.0, 540.0)
+                    .center()
+                    .initialization_script(include_str!("../bridge.js"))
+                    .background_color(tauri::webview::Color(26, 22, 48, 255))
+                    .disable_drag_drop_handler()
+                    .background_throttling(
+                        tauri::utils::config::BackgroundThrottlingPolicy::Disabled,
+                    )
+                    .on_navigation(move |url| {
+                        if is_game(url) {
+                            true
+                        } else {
+                            open_external(&navigation_app, url);
+                            false
+                        }
+                    })
+                    .on_new_window(move |url, _| {
+                        open_external(&popup_app, &url);
+                        NewWindowResponse::Deny
+                    })
+                    .build()?;
+            let focused_window = window.clone();
+            window.on_window_event(move |event| {
+                if let WindowEvent::Focused(_) = event {
+                    if let Err(error) = audio::sync(&focused_window) {
+                        eprintln!("Could not update background audio: {error}");
                     }
-                })
-                .on_new_window(move |url, _| {
-                    open_external(&popup_app, &url);
-                    NewWindowResponse::Deny
-                })
-                .build()?;
+                }
+            });
+            audio::sync(&window)?;
             Ok(())
         })
         .on_menu_event(|app, event| match event.id().as_ref() {

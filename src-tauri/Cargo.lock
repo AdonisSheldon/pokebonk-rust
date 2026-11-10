@@ -2609,8 +2609,11 @@ dependencies = [
 
 [[package]]
 name = "pokebonk-rust"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
+ "objc2",
+ "objc2-app-kit",
+ "objc2-web-kit",
  "serde",
  "serde_json",
  "tauri",

@@ -79,3 +79,26 @@ service and Apple Developer signing require separately supplied credentials.
 
 The source archive contains this entire standalone `rust-macos` project, including
 both dependency lockfiles and icons; it does not require the Electron project to build.
+
+
+## 0.1.1 — mute while unfocused
+
+The native macOS focus handler suspends all WKWebView media playback while the
+application or game window is unfocused, and removes that suspension on focus.
+Both HTML media and Web Audio are covered. Game volume values and intentional
+pauses are preserved. Playback remains gated during page navigation and new audio
+creation because WebKit owns the media suspension, rather than a page script.
+
+Native regression fixture (local audio only; does not touch game data):
+
+```sh
+cargo run --manifest-path src-tauri/Cargo.toml --example audio_focus
+```
+
+Click Start, minimize/switch away, restore the window, then repeat after clicking
+Pause intentionally. Web Audio should go from running to interrupted and back;
+the held context stays suspended. HTML media pauses and resumes, with volume 0.37
+and Web Audio gain 0.0001 unchanged. This was verified on macOS 27.0 with the native
+fixture. The original four Rust tests, four JS tests and all-target Clippy also pass.
+
+Framework API: https://developer.apple.com/documentation/webkit/wkwebview/setallmediaplaybacksuspended(_:completionhandler:)
