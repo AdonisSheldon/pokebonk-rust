@@ -31,6 +31,10 @@ app, output = [Path(arg).resolve() for arg in sys.argv[1:]]
 assert app.name == "PokeBonk Rust.app" and app.is_dir()
 assert output.suffix == ".dmg" and not output.exists(), "Refusing to overwrite an existing image"
 info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+architecture = subprocess.check_output([
+    "/usr/bin/lipo", "-archs", app / "Contents/MacOS" / info["CFBundleExecutable"]
+], text=True).strip()
+assert architecture in ("arm64", "x86_64"), "Expected a single Apple Silicon or Intel architecture"
 expected = manifest(app)
 # Keep the background file off canvas even when Finder shows hidden files.
 positions = {app.name: (160, 145), "Applications": (480, 145), ".background.tiff": (900, 500)}
@@ -74,4 +78,5 @@ with tempfile.TemporaryDirectory(prefix="pokebonk-installer-", dir="/private/tmp
     shutil.move(candidate, output)
 
 with output.open("rb") as stream:
-    print("Verified:", output, "\nSHA256:", hashlib.file_digest(stream, "sha256").hexdigest())
+    print("Verified:", output, "\nArchitecture:", architecture,
+          "\nSHA256:", hashlib.file_digest(stream, "sha256").hexdigest())

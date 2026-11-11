@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build --bundles app",
+    "build:apple": "tauri build --bundles app --target aarch64-apple-darwin",
+    "build:intel": "tauri build --bundles app --target x86_64-apple-darwin",
     "test:bridge": "node --test tests/bridge.test.cjs"
   },
   "devDependencies": {

@@ -8,7 +8,7 @@ not an official release. Upstream artwork and game rights remain with their owne
 
 ## Development scope and acceptance
 
-- Apple Silicon macOS 13+ app and DMG; ASCII package/executable name.
+- Intel and Apple Silicon macOS 13+ apps and separate DMGs; ASCII package/executable name.
 - Persistent, independent game data; no import or alteration of Electron data.
 - Native menu, fullscreen, reload/reconnect, window size/monitor settings.
 - Compatible `pokebonkDesktop` bridge for these features, restricted to the official
@@ -32,6 +32,20 @@ npm run build
 npm run dev
 ```
 
+For both architectures on the same Mac:
+
+```sh
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+npm run build:apple -- -- --locked
+npm run build:intel -- -- --locked
+```
+
+`build:apple` targets `aarch64-apple-darwin` (M-series Macs); `build:intel` targets
+`x86_64-apple-darwin` (Intel Macs). Each target has its own signed app in
+`src-tauri/target/<target>/release/bundle/macos/PokeBonk Rust.app`. Both retain
+version 0.1.1 and the same features. Rust cross-compilation uses Xcode's macOS SDK:
+https://doc.rust-lang.org/rustc/platform-support/apple-darwin.html
+
 Rust code is in `src-tauri/src`, the injected compatibility bridge is
 `src-tauri/bridge.js`, and bridge tests are in `tests`. `Cargo.lock` and
 `package-lock.json` pin dependencies. Use `cargo fmt` and small direct functions.
@@ -45,12 +59,15 @@ python3 -m pip install dmgbuild==1.6.7
 python3 packaging/build-dmg.py \
   "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
   "PokeBonk-Rust-0.1.1-macOS-arm64-Installer.dmg"
+python3 packaging/build-dmg.py \
+  "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
+  "PokeBonk-Rust-0.1.1-macOS-x86_64-Installer.dmg"
 ```
 
 The image opens in a minimal 640 × 360 icon view with a warm Retina background,
 pixel frames, a red arrow and a small Poké Ball; there is no background text.
 App and Applications positions are fixed. The script verifies
-the mounted layout, app bytes, Applications link and code signature before publishing
+the binary architecture, mounted layout, app bytes, Applications link and code signature before publishing
 the image. It refuses to overwrite an existing image. It does not rebuild or re-sign
 the app. To regenerate the checked-in background with macOS AppKit:
 
@@ -126,3 +143,16 @@ and Web Audio gain 0.0001 unchanged. This was verified on macOS 27.0 with the na
 fixture. The original four Rust tests, four JS tests and all-target Clippy also pass.
 
 Framework API: https://developer.apple.com/documentation/webkit/wkwebview/setallmediaplaybacksuspended(_:completionhandler:)
+
+## Dual-architecture verification (2026-11-11)
+
+- Locked release builds passed for `aarch64-apple-darwin` and `x86_64-apple-darwin`.
+- Four Rust tests passed on each target, and all four JavaScript bridge tests passed.
+- The Apple Silicon app started natively; the Intel app started through Rosetta on
+  Apple Silicon. Both loaded and rendered the official game's main menu.
+- Each DMG's app matches its current build byte for byte. Architecture, macOS 13.0
+  deployment target, Applications link, approved background and strict signature
+  checks passed. The existing Apple Silicon DMG is unchanged.
+- Runtime source and focus muting are unchanged. Intel hardware, macOS 13 hardware
+  and long-session gameplay were not tested in this release. Both apps remain
+  ad-hoc signed without Apple notarization.
