@@ -27,14 +27,10 @@ let art = NSImage(size: NSSize(width: width, height: height), flipped: true) { _
                     NSPoint(x: x, y: 83), NSPoint(x: x + 8, y: 83)],
                    fill: 0xFFFCF5, border: 0x303048)
     }
-    pixelShape([NSPoint(x: 294, y: 139), NSPoint(x: 324, y: 139),
-                NSPoint(x: 324, y: 127), NSPoint(x: 330, y: 127),
-                NSPoint(x: 330, y: 133), NSPoint(x: 336, y: 133),
-                NSPoint(x: 336, y: 139), NSPoint(x: 342, y: 139),
-                NSPoint(x: 342, y: 151), NSPoint(x: 336, y: 151),
-                NSPoint(x: 336, y: 157), NSPoint(x: 330, y: 157),
-                NSPoint(x: 330, y: 163), NSPoint(x: 324, y: 163),
-                NSPoint(x: 324, y: 151), NSPoint(x: 294, y: 151)], fill: 0xEA5B60)
+    pixelShape([NSPoint(x: 292, y: 139), NSPoint(x: 324, y: 139),
+                NSPoint(x: 324, y: 123), NSPoint(x: 350, y: 145),
+                NSPoint(x: 324, y: 167), NSPoint(x: 324, y: 151),
+                NSPoint(x: 292, y: 151)], fill: 0xEA5B60)
     let ball = NSBezierPath(ovalIn: NSRect(x: 308, y: 35, width: 24, height: 24))
     color(0xFFFCF5).setFill(); ball.fill()
     NSGraphicsContext.saveGraphicsState(); ball.addClip()
