@@ -95,6 +95,17 @@ It installs for the current user, uses Simplified Chinese or English according t
 the OS language, and downloads the Evergreen WebView2 bootstrapper if the runtime
 is missing or older than the configured minimum. Game access requires the internet.
 
+The installer uses the macOS package's warm cream, dark pixel frame and red Poké
+Ball palette. The welcome page and explanatory paragraphs are removed; installation
+location, progress, launch and shortcut choices remain. The small
+`packaging/windows-theme.nsh` hook retains Tauri's standard update, uninstall and
+WebView2 handling. The checked-in 24-bit BMP artwork has no baked-in text. To
+regenerate it on macOS (not required for a Windows build):
+
+```sh
+swift packaging/windows-art.swift packaging
+```
+
 For cross-compilation from macOS, install LLVM, LLD, NSIS, the Rust
 `x86_64-pc-windows-msvc` target and cargo-xwin, add LLVM and cargo-xwin to PATH, then:
 
@@ -210,3 +221,14 @@ Framework API: https://developer.apple.com/documentation/webkit/wkwebview/setall
 - Windows hardware gameplay, real output silence during focus changes and
   Windows 11 have not been manually verified. The installer and executable are
   unsigned; Windows may display a SmartScreen warning.
+
+### Minimal installer theme (2026-11-11)
+
+- NSIS theme compilation and archive integrity passed. Both embedded 24-bit BMPs
+  match the checked-in artwork. The packaged application is byte-identical to the
+  previous Windows installer, including its focus muting implementation.
+- Fresh silent installation and same-version reinstallation in an isolated
+  CrossOver/Wine Windows 10 container succeeded, installed WebView2 and produced
+  the expected application bytes.
+- CrossOver did not expose the interactive installer window for visual inspection.
+  Interactive layout and display scaling still require verification on Windows.

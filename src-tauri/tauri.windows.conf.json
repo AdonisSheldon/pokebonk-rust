@@ -4,7 +4,14 @@
     "icon": ["icons/icon.ico"],
     "windows": {
       "minimumWebview2Version": "110.0.1531.0",
-      "nsis": { "languages": ["SimpChinese", "English"] }
+      "nsis": {
+        "languages": ["SimpChinese", "English"],
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "headerImage": "../packaging/windows-header.bmp",
+        "sidebarImage": "../packaging/windows-sidebar.bmp",
+        "installerHooks": "../packaging/windows-theme.nsh"
+      }
     }
   }
 }
