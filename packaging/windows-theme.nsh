@@ -19,3 +19,47 @@ AutoCloseWindow true
 !macro MUI_PAGE_WELCOME
   !undef MUI_PAGE_CUSTOMFUNCTION_PRE
 !macroend
+
+!macroundef MUI_PAGE_DIRECTORY
+!macro MUI_PAGE_DIRECTORY
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW PokeBonkDirectoryShow
+  !insertmacro MUI_PAGE_INIT
+  !insertmacro MUI_PAGEDECLARATION_DIRECTORY
+!macroend
+
+; Dialog units keep the controls aligned with both language fonts and DPI scaling.
+!macro PokeBonkLiftDirectoryControl ID
+  GetDlgItem $2 $0 ${ID}
+  System::Call 'user32::GetWindowRect(p r2, p r1)'
+  System::Call 'user32::MapWindowPoints(p 0, p r0, p r1, i 2)'
+  System::Call '*$1(i.r3, i.r4)'
+  IntOp $4 $4 - $5
+  ; Preserve native size, stacking and focus (NOSIZE | NOZORDER | NOACTIVATE).
+  System::Call 'user32::SetWindowPos(p r2, p 0, i r3, i r4, i 0, i 0, i 0x15)'
+!macroend
+
+Function PokeBonkDirectoryShow
+  System::Store S
+  FindWindow $0 "#32770" "" $HWNDPARENT
+  SetCtlColors $HWNDPARENT "${MUI_TEXTCOLOR}" "${MUI_BGCOLOR}"
+  SetCtlColors $0 "${MUI_TEXTCOLOR}" "${MUI_BGCOLOR}"
+  GetDlgItem $2 $0 1020
+  SetCtlColors $2 "${MUI_TEXTCOLOR}" "${MUI_BGCOLOR}"
+  GetDlgItem $2 $HWNDPARENT 1028
+  SetCtlColors $2 "${MUI_TEXTCOLOR}" "${MUI_BGCOLOR}"
+  GetDlgItem $2 $HWNDPARENT 1256
+  SetCtlColors $2 "${MUI_TEXTCOLOR}" "${MUI_BGCOLOR}"
+  ; The removed paragraph would otherwise overlap the raised directory controls.
+  GetDlgItem $2 $0 1006
+  ShowWindow $2 0
+  System::Alloc 16
+  Pop $1
+  System::Call '*$1(i 0, i 0, i 0, i 50)'
+  System::Call 'user32::MapDialogRect(p r0, p r1)'
+  System::Call '*$1(i, i, i, i.r5)'
+  !insertmacro PokeBonkLiftDirectoryControl 1020
+  !insertmacro PokeBonkLiftDirectoryControl 1019
+  !insertmacro PokeBonkLiftDirectoryControl 1001
+  System::Free $1
+  System::Store L
+FunctionEnd

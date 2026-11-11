@@ -99,8 +99,10 @@ The installer uses the macOS package's warm cream, dark pixel frame and red Pok√
 Ball palette. The welcome page and explanatory paragraphs are removed; installation
 location, progress, launch and shortcut choices remain. The small
 `packaging/windows-theme.nsh` hook retains Tauri's standard update, uninstall and
-WebView2 handling. The checked-in 24-bit BMP artwork has no baked-in text. To
-regenerate it on macOS (not required for a Windows build):
+WebView2 handling. The directory page and footer use the same warm background;
+its directory group, input and browse button are raised by 50 dialog units, with
+Windows font and DPI conversion. The checked-in 24-bit BMP artwork has no
+baked-in text. To regenerate it on macOS (not required for a Windows build):
 
 ```sh
 swift packaging/windows-art.swift packaging
@@ -232,3 +234,12 @@ Framework API: https://developer.apple.com/documentation/webkit/wkwebview/setall
   the expected application bytes.
 - CrossOver did not expose the interactive installer window for visual inspection.
   Interactive layout and display scaling still require verification on Windows.
+
+The second installer revision also colors the directory page and footer warm
+cream and raises its three directory controls by 50 dialog units. An isolated
+NSIS fixture running the production callback passed in English and Simplified
+Chinese: all controls moved upward together, their native sizes and horizontal
+positions stayed unchanged, and the removed paragraph was hidden. The callback
+also preserved caller registers; both the outer window and directory page
+returned the expected warm cream background brushes. Windows hardware visual
+checks remain pending.
