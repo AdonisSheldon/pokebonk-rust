@@ -46,6 +46,21 @@ test('compatibility update API never installs Electron updates', async () => {
   assert.equal(calls.some(c => /install|update/i.test(c.command)), false);
 });
 
+test('release versions agree and the native updater uses the dedicated signed Rust channel', () => {
+  const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+  const version = config.version;
+  assert.equal(JSON.parse(fs.readFileSync('package.json', 'utf8')).version, version);
+  assert.equal(JSON.parse(fs.readFileSync('package-lock.json', 'utf8')).packages[''].version, version);
+  assert.equal(/\[package\][\s\S]*?^version = "([^"]+)"/m.exec(fs.readFileSync('src-tauri/Cargo.toml', 'utf8'))[1], version);
+  assert.equal(/name = "pokebonk-rust"\nversion = "([^"]+)"/.exec(fs.readFileSync('src-tauri/Cargo.lock', 'utf8'))[1], version);
+  assert.equal(load().window.pokebonkDesktop.clientVersion, version);
+  assert.equal(config.bundle.createUpdaterArtifacts, true);
+  assert.equal(config.plugins.updater.requireSignedVersion, true);
+  assert.deepEqual(config.plugins.updater.endpoints, ['https://github.com/AdonisSheldon/pokebonk-rust/releases/latest/download/latest.json']);
+  const capability = JSON.parse(fs.readFileSync('src-tauri/capabilities/game-window.json', 'utf8'));
+  assert.equal(capability.permissions.some(permission => permission.startsWith('updater:')), false);
+});
+
 test('F11 goes through the native fullscreen command, Escape remains a game key', async () => {
   const { handlers, calls } = load();
   let prevented = false;

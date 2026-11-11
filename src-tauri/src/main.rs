@@ -3,11 +3,12 @@
 mod audio;
 mod display;
 mod policy;
+mod updater;
 
 use serde::Deserialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{
-    menu::{MenuBuilder, SubmenuBuilder},
+    menu::{MenuBuilder, MenuItem, SubmenuBuilder},
     webview::NewWindowResponse,
     AppHandle, Manager, WebviewUrl, WebviewWindow, WindowEvent,
 };
@@ -150,6 +151,7 @@ fn main() {
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_opener::Builder::new()
                 .open_js_links_on_click(false)
@@ -163,8 +165,17 @@ fn main() {
             native_action
         ])
         .setup(|app| {
+            let check_updates = MenuItem::with_id(
+                app,
+                "check-updates",
+                "检查更新 / Check for Updates…",
+                true,
+                None::<&str>,
+            )?;
+            app.manage(updater::UpdaterState::new(check_updates.clone()));
             let app_menu = SubmenuBuilder::new(app, "PokeBonk Rust")
                 .about(None)
+                .item(&check_updates)
                 .separator()
                 .hide()
                 .hide_others()
@@ -236,6 +247,7 @@ fn main() {
                 }
             });
             audio::sync(&window)?;
+            updater::start(app.handle());
             Ok(())
         })
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -249,6 +261,7 @@ fn main() {
             "reload" => request_action(app, Action::Reload),
             "reconnect" => request_action(app, Action::Reconnect),
             "website" => open_external(app, &GAME.parse().expect("static game URL")),
+            "check-updates" => updater::check(app, true),
             _ => {}
         })
         .on_window_event(|window, event| match event {

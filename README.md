@@ -139,6 +139,30 @@ service and Apple Developer signing require separately supplied credentials.
 - https://docs.rs/tauri-build/2.7.4/tauri_build/struct.AppManifest.html
 - https://v2.tauri.app/plugin/window-state/
 - https://v2.tauri.app/plugin/single-instance/
+
+## Automatic Rust client updates
+
+Version 0.1.3 checks the dedicated
+https://github.com/AdonisSheldon/pokebonk-rust/releases/latest/download/latest.json
+ten seconds after startup and every four hours. The application menu also has
+Check for Updates. A short native prompt offers upgrade/restart or Later and
+reminds the player to save the current run. Later suppresses the same automatic
+prompt for this session; a manual check can still offer it.
+
+The Rust updater downloads and verifies the package before changing any program
+files. Both its signature and the version bound into that signature must match.
+Only after user confirmation does installation run; Windows uses the existing
+NSIS installer in passive mode. The identifier, profile locations, installer
+artwork and native focus-audio handlers are retained. No updater capability is
+granted to remote game pages; the compatibility Electron update API stays off.
+
+The public update key is embedded in the configuration. The private key must stay
+outside the repository, be backed up by the maintainer and be stored as the
+`TAURI_SIGNING_PRIVATE_KEY` release secret. Updater signatures are separate from
+Apple notarization and Windows code signing. Existing 0.1.2 clients need one
+manual installation of 0.1.3 to acquire this update mechanism.
+
+API: https://v2.tauri.app/plugin/updater/
 - https://v2.tauri.app/distribute/macos-application-bundle/
 
 ## Implementation checkpoints
