@@ -1,8 +1,8 @@
 [package]
 name = "pokebonk-rust"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
-description = "Independent macOS Rust client for the PokéBonk web game"
+description = "Independent macOS and Windows Rust client for the PokéBonk web game"
 publish = false
 
 [build-dependencies]
@@ -20,6 +20,10 @@ serde = { version = "1", features = ["derive"] }
 objc2 = "0.6.5"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSWindow"] }
 objc2-web-kit = { version = "0.3.2", default-features = false, features = ["std", "WKWebView", "block2"] }
+
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39.1"
+windows-core = "0.62.2"
 
 [dev-dependencies]
 serde_json = "1"

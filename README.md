@@ -1,6 +1,7 @@
-# PokeBonk Rust for macOS
+# PokeBonk Rust for macOS and Windows
 
-Independent Rust / Tauri 2 / WKWebView desktop client. Based on review of
+Independent Rust / Tauri 2 desktop client using WKWebView on macOS and WebView2 on
+Windows. Based on review of
 `CharcherGit/pokebonk-app` main at `219162945987c3b8c95699c3f84bdc758926f1a3`
 (2026-11-03), checked on 2026-11-10. The game is loaded from https://pokebonk.com;
 the game itself is not rewritten or bundled. This is a personal alternative client,
@@ -9,6 +10,7 @@ not an official release. Upstream artwork and game rights remain with their owne
 ## Development scope and acceptance
 
 - Intel and Apple Silicon macOS 13+ apps and separate DMGs; ASCII package/executable name.
+- Windows 10/11 x64 app and NSIS `.exe` installer, with native mute while unfocused.
 - Persistent, independent game data; no import or alteration of Electron data.
 - Native menu, fullscreen, reload/reconnect, window size/monitor settings.
 - Compatible `pokebonkDesktop` bridge for these features, restricted to the official
@@ -43,7 +45,7 @@ npm run build:intel -- -- --locked
 `build:apple` targets `aarch64-apple-darwin` (M-series Macs); `build:intel` targets
 `x86_64-apple-darwin` (Intel Macs). Each target has its own signed app in
 `src-tauri/target/<target>/release/bundle/macos/PokeBonk Rust.app`. Both retain
-version 0.1.1 and the same features. Rust cross-compilation uses Xcode's macOS SDK:
+the same app version and features. Rust cross-compilation uses Xcode's macOS SDK:
 https://doc.rust-lang.org/rustc/platform-support/apple-darwin.html
 
 Rust code is in `src-tauri/src`, the injected compatibility bridge is
@@ -58,10 +60,10 @@ With Python 3.11+, install the packaging tool and package the signed app:
 python3 -m pip install dmgbuild==1.6.7
 python3 packaging/build-dmg.py \
   "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.1-macOS-arm64-Installer.dmg"
+  "PokeBonk-Rust-0.1.2-macOS-arm64-Installer.dmg"
 python3 packaging/build-dmg.py \
   "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.1-macOS-x86_64-Installer.dmg"
+  "PokeBonk-Rust-0.1.2-macOS-x86_64-Installer.dmg"
 ```
 
 The image opens in a minimal 640 × 360 icon view with a warm Retina background,
@@ -76,6 +78,41 @@ swift packaging/dmg-background.swift packaging/dmg-background
 ```
 
 Packaging reference: https://dmgbuild.readthedocs.io/en/latest/settings.html
+
+### Windows installer
+
+On Windows, install Rust MSVC, Microsoft C++ Build Tools, Node and WebView2, then:
+
+```sh
+npm ci
+npm run test:bridge
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+npm run build:windows -- -- --locked
+```
+
+The installer is written to `src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/`.
+It installs for the current user, uses Simplified Chinese or English according to
+the OS language, and downloads the Evergreen WebView2 bootstrapper if the runtime
+is missing or older than the configured minimum. Game access requires the internet.
+
+For cross-compilation from macOS, install LLVM, LLD, NSIS, the Rust
+`x86_64-pc-windows-msvc` target and cargo-xwin, add LLVM and cargo-xwin to PATH, then:
+
+```sh
+npm run build:windows -- --runner cargo-xwin -- --locked
+```
+
+Windows focus muting uses WebView2 `ICoreWebView2_8::SetIsMuted` for all audio output.
+It preserves the initial mute value across repeated blur events and restores it on
+focus. Failed setters retain the previous state for retry. Page volume values and
+intentional playback pauses are untouched. macOS retains its WKWebView handler.
+The same local `audio_focus` fixture is available on Windows with
+`cargo run --manifest-path src-tauri/Cargo.toml --example audio_focus`.
+On Windows, playback remains running while native output is muted; check audible
+silence and restoration when switching focus rather than expecting a paused state.
+
+- https://v2.tauri.app/distribute/windows-installer/
+- https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_8?view=webview2-1.0.3537.50
 
 Boundary: only official game pages may call the enumerated window commands. No
 generic file, process, shell or network API is exposed to web content. Never copy
@@ -156,3 +193,20 @@ Framework API: https://developer.apple.com/documentation/webkit/wkwebview/setall
 - Runtime source and focus muting are unchanged. Intel hardware, macOS 13 hardware
   and long-session gameplay were not tested in this release. Both apps remain
   ad-hoc signed without Apple notarization.
+
+## Windows 0.1.2 verification (2026-11-11)
+
+- Windows x64 release and Unicode NSIS installer cross-compiled on macOS.
+- Eight Rust tests passed natively on macOS and as Windows executables in an
+  isolated CrossOver/Wine Windows 10 container. Four tests cover focus mute
+  restoration, existing mute state, duplicate events and failed native setters.
+- All four JavaScript bridge tests and all-target Clippy checks on both macOS and
+  Windows passed with warnings denied. Cross-linking reports missing optional
+  Microsoft CRT debug symbols; release linking succeeds.
+- Installer archive integrity passed. Its x64 payload matches the compiled app
+  after Tauri's expected NSIS bundle marker patch. A silent installation in the
+  isolated container exited successfully and installed identical program bytes.
+- WebView2 Evergreen 157.0.4341.46 was installed by the normal installer flow.
+- Windows hardware gameplay, real output silence during focus changes and
+  Windows 11 have not been manually verified. The installer and executable are
+  unsigned; Windows may display a SmartScreen warning.

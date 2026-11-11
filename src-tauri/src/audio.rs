@@ -1,11 +1,24 @@
+#[cfg(any(windows, test))]
+#[path = "audio_mute.rs"]
+mod mute;
+#[cfg(windows)]
+#[path = "audio_windows.rs"]
+mod windows;
+#[cfg(windows)]
+pub use windows::{sync, FocusAudio};
+
+#[cfg(target_os = "macos")]
 use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(target_os = "macos")]
 use tauri::Manager;
 
+#[cfg(target_os = "macos")]
 #[derive(Default)]
 pub struct FocusAudio {
     suspended: AtomicBool,
 }
 
+#[cfg(target_os = "macos")]
 pub fn sync(window: &tauri::WebviewWindow) -> tauri::Result<()> {
     let handle = window.app_handle().clone();
     window.with_webview(move |platform| {
