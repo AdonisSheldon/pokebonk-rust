@@ -36,6 +36,30 @@ Rust code is in `src-tauri/src`, the injected compatibility bridge is
 `src-tauri/bridge.js`, and bridge tests are in `tests`. `Cargo.lock` and
 `package-lock.json` pin dependencies. Use `cargo fmt` and small direct functions.
 
+### Drag-to-install DMG
+
+With Python 3.11+, install the packaging tool and package the signed app:
+
+```sh
+python3 -m pip install dmgbuild==1.6.7
+python3 packaging/build-dmg.py \
+  "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
+  "PokeBonk-Rust-0.1.1-macOS-arm64-Installer.dmg"
+```
+
+The image opens in a minimal 640 × 360 icon view with a warm Retina background,
+pixel frames, a red arrow and a small Poké Ball; there is no background text.
+App and Applications positions are fixed. The script verifies
+the mounted layout, app bytes, Applications link and code signature before publishing
+the image. It refuses to overwrite an existing image. It does not rebuild or re-sign
+the app. To regenerate the checked-in background with macOS AppKit:
+
+```sh
+swift packaging/dmg-background.swift packaging/dmg-background
+```
+
+Packaging reference: https://dmgbuild.readthedocs.io/en/latest/settings.html
+
 Boundary: only official game pages may call the enumerated window commands. No
 generic file, process, shell or network API is exposed to web content. Never copy
 session cookies or authentication data between clients. Publishing to a third-party
