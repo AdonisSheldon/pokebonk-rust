@@ -1,0 +1,121 @@
+name: Rust client checks and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            arch: x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: app
+            arch: arm64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            bundles: app
+            arch: x86_64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.target }}
+      BUNDLES: ${{ matrix.bundles }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.12'
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --target "$TARGET"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-${{ matrix.target }}-rust-${{ hashFiles('src-tauri/Cargo.lock') }}
+      - run: npm ci
+      - name: Format, lint and tests
+        run: |
+          cargo +stable fmt --manifest-path src-tauri/Cargo.toml --check
+          cargo +stable clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets --target "$TARGET" -- -D warnings
+          cargo +stable test --manifest-path src-tauri/Cargo.toml --locked
+          npm run test:bridge
+          python tests/release_test.py
+          npm audit --audit-level=high
+      - name: Link release binary
+        run: cargo +stable build --manifest-path src-tauri/Cargo.toml --locked --release --target "$TARGET"
+      - name: Build signed update package
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          npx tauri build --target "$TARGET" --bundles "$BUNDLES" -- --locked
+          python packaging/release.py collect "$TARGET" dist
+      - name: Package themed DMG
+        if: runner.os == 'macOS' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+        run: |
+          python -m pip install dmgbuild==1.6.7
+          version="$(node -p "require('./package.json').version")"
+          python packaging/build-dmg.py "src-tauri/target/$TARGET/release/bundle/macos/PokeBonk Rust.app" "dist/PokeBonk-Rust-$version-macOS-$ARCH-Installer.dmg"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  draft:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Generate complete release manifest
+        run: |
+          version="$(python -c "import json; print(json.load(open('package.json'))['version'])")"
+          test "$RELEASE_TAG" = "v$version"
+          git archive --format=zip --prefix="PokeBonk-Rust-$version/" --output="dist/PokeBonk-Rust-$version-source.zip" HEAD
+          python packaging/release.py manifest dist "$GITHUB_REPOSITORY"
+      - name: Upload draft release
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft > release-state.txt; then
+            test "$(cat release-state.txt)" = true
+            gh release upload "$RELEASE_TAG" dist/* --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/* --draft --verify-tag --generate-notes --title "PokéBonk Rust $RELEASE_TAG"
+          fi

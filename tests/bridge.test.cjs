@@ -52,7 +52,7 @@ test('release versions agree and the native updater uses the dedicated signed Ru
   assert.equal(JSON.parse(fs.readFileSync('package.json', 'utf8')).version, version);
   assert.equal(JSON.parse(fs.readFileSync('package-lock.json', 'utf8')).packages[''].version, version);
   assert.equal(/\[package\][\s\S]*?^version = "([^"]+)"/m.exec(fs.readFileSync('src-tauri/Cargo.toml', 'utf8'))[1], version);
-  assert.equal(/name = "pokebonk-rust"\nversion = "([^"]+)"/.exec(fs.readFileSync('src-tauri/Cargo.lock', 'utf8'))[1], version);
+  assert.equal(/name = "pokebonk-rust"\r?\nversion = "([^"]+)"/.exec(fs.readFileSync('src-tauri/Cargo.lock', 'utf8'))[1], version);
   assert.equal(load().window.pokebonkDesktop.clientVersion, version);
   assert.equal(config.bundle.createUpdaterArtifacts, true);
   assert.equal(config.plugins.updater.requireSignedVersion, true);

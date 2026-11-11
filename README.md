@@ -139,6 +139,7 @@ service and Apple Developer signing require separately supplied credentials.
 - https://docs.rs/tauri-build/2.7.4/tauri_build/struct.AppManifest.html
 - https://v2.tauri.app/plugin/window-state/
 - https://v2.tauri.app/plugin/single-instance/
+- https://v2.tauri.app/distribute/macos-application-bundle/
 
 ## Automatic Rust client updates
 
@@ -163,7 +164,34 @@ Apple notarization and Windows code signing. Existing 0.1.2 clients need one
 manual installation of 0.1.3 to acquire this update mechanism.
 
 API: https://v2.tauri.app/plugin/updater/
-- https://v2.tauri.app/distribute/macos-application-bundle/
+
+### Publishing a Rust release
+
+Use the standalone repository https://github.com/AdonisSheldon/pokebonk-rust.
+The workflow checks all three targets on pushes and pull requests. A version tag
+also builds signed updater artifacts and the existing themed installers, then
+creates a draft release after every target succeeds. Publish that draft only
+after reviewing its installers and `latest.json`; the clients then see it.
+The signing secret is supplied only to the release packaging step, not ordinary
+pull-request checks. The release tag must equal `v` plus the application version.
+
+Keep the version in `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`,
+`src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` and the bridge's `clientVersion`
+consistent; the bridge tests enforce this. For local signed packaging, set
+`TAURI_SIGNING_PRIVATE_KEY` to the private key file path and use the normal build
+commands. Collect each target's unchanged signed bytes with:
+
+```sh
+python packaging/release.py collect aarch64-apple-darwin dist
+python packaging/release.py collect x86_64-apple-darwin dist
+python packaging/release.py collect x86_64-pc-windows-msvc dist
+python packaging/release.py manifest dist AdonisSheldon/pokebonk-rust
+python tests/release_test.py
+```
+
+The manifest embeds signature content, uses fixed architecture keys and refuses
+to generate a partial three-platform feed. Updater packages are `.exe` on Windows
+and `.app.tar.gz` on macOS; the themed DMGs remain for manual installation.
 
 ## Implementation checkpoints
 
