@@ -4,6 +4,7 @@
   const url = window.location;
   if (url.protocol !== 'https:' || !['pokebonk.com', 'www.pokebonk.com'].includes(url.hostname)
       || (url.port && url.port !== '443')) return;
+  window.__pokebonkInstallPointerLock?.();
   const invoke = (command, args) => window.__TAURI__.core.invoke(command, args);
   let fullscreen = false;
   function sync(state) {
@@ -21,7 +22,7 @@
   Object.defineProperty(window, 'pokebonkDesktop', {
     value: Object.freeze({
       version: '1.4.0',
-      clientVersion: '0.1.3',
+      clientVersion: '0.1.4',
       engine: 'webkit',
       platform: 'darwin',
       display,

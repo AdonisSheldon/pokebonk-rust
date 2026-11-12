@@ -2,6 +2,8 @@
 
 mod audio;
 mod display;
+#[cfg(target_os = "macos")]
+mod pointer_lock;
 mod policy;
 mod updater;
 
@@ -32,6 +34,18 @@ fn check_sender(window: &WebviewWindow) -> Result<(), String> {
         Ok(())
     } else {
         Err("Desktop commands are restricted to the official game".into())
+    }
+}
+
+#[tauri::command]
+async fn pointer_lock(window: WebviewWindow, locked: bool) -> Result<(), String> {
+    check_sender(&window)?;
+    #[cfg(target_os = "macos")]
+    return pointer_lock::set(&window, locked).await;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = locked;
+        Err("Native pointer lock is only needed by macOS WKWebView".into())
     }
 }
 
@@ -162,7 +176,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             display,
             set_display,
-            native_action
+            native_action,
+            pointer_lock
         ])
         .setup(|app| {
             let check_updates = MenuItem::with_id(
@@ -212,6 +227,15 @@ fn main() {
             )?;
             let navigation_app = app.handle().clone();
             let popup_app = app.handle().clone();
+            let initialization = if cfg!(target_os = "macos") {
+                format!(
+                    "{}\n{}",
+                    include_str!("../pointer-lock.js"),
+                    include_str!("../bridge.js")
+                )
+            } else {
+                include_str!("../bridge.js").to_owned()
+            };
             // https://docs.rs/tauri/2.12.5/tauri/webview/struct.WebviewWindowBuilder.html
             let window =
                 tauri::WebviewWindowBuilder::new(app, "main", WebviewUrl::External(GAME.parse()?))
@@ -219,13 +243,17 @@ fn main() {
                     .inner_size(1280.0, 800.0)
                     .min_inner_size(960.0, 540.0)
                     .center()
-                    .initialization_script(include_str!("../bridge.js"))
+                    .initialization_script(initialization)
                     .background_color(tauri::webview::Color(26, 22, 48, 255))
                     .disable_drag_drop_handler()
                     .background_throttling(
                         tauri::utils::config::BackgroundThrottlingPolicy::Disabled,
                     )
                     .on_navigation(move |url| {
+                        #[cfg(target_os = "macos")]
+                        if let Some(window) = navigation_app.get_webview_window("main") {
+                            pointer_lock::release(&window);
+                        }
                         if is_game(url) {
                             true
                         } else {
@@ -238,6 +266,8 @@ fn main() {
                         NewWindowResponse::Deny
                     })
                     .build()?;
+            #[cfg(target_os = "macos")]
+            pointer_lock::install(&window)?;
             let focused_window = window.clone();
             window.on_window_event(move |event| {
                 if let WindowEvent::Focused(_) = event {

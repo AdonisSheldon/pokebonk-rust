@@ -1,6 +1,6 @@
 [package]
 name = "pokebonk-rust"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "Independent macOS and Windows Rust client for the PokéBonk web game"
 publish = false
@@ -17,12 +17,14 @@ tauri-plugin-window-state = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-updater = "2.14.1"
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["time", "sync"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.5"
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSWindow"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSWindow", "NSEvent", "NSCursor", "block2"] }
 objc2-web-kit = { version = "0.3.2", default-features = false, features = ["std", "WKWebView", "block2"] }
+block2 = "0.6.2"
+core-graphics = "0.25.0"
 
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39.1"

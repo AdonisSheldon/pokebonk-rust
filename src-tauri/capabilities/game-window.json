@@ -5,5 +5,5 @@
   "windows": ["main"],
   "local": false,
   "remote": { "urls": ["https://pokebonk.com", "https://www.pokebonk.com"] },
-  "permissions": ["allow-display", "allow-set-display", "allow-native-action"]
+  "permissions": ["allow-display", "allow-set-display", "allow-native-action", "allow-pointer-lock"]
 }
