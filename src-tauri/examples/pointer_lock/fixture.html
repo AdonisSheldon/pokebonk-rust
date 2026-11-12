@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pointer Lock 本地复现</title>
+<style>
+  body { margin: 24px auto; max-width: 980px; padding: 0 20px; font: 17px/1.5 system-ui; color: #eaf0ff; background: #172033; }
+  button { font: inherit; padding: 8px 16px; margin-right: 12px; }
+  #target { height: 240px; display: grid; place-items: center; background: #283751; border: 2px solid #a4b9dd; text-align: center; cursor: crosshair; }
+  #status { white-space: pre-wrap; font: 17px/1.6 ui-monospace, monospace; }
+  #log { white-space: pre-wrap; font: 13px/1.5 ui-monospace, monospace; max-height: 210px; overflow: auto; }
+</style>
+<h1>Pointer Lock 本地复现</h1>
+<p>点击蓝框请求锁定，然后<strong>松开鼠标按钮并移动</strong>。按 X 请求退出，按 Esc 测试系统释放，切换应用测试失焦释放。每项重新点击蓝框开始。</p>
+<p>按 X、Esc 或切走应用后 500ms 检查释放；不主动修复或模拟释放。页面无联网、无账号、无存储。</p>
+<div id="target" tabindex="0" role="button" aria-label="请求 Pointer Lock">点击请求 Pointer Lock<br>锁定后松开鼠标，移动应有相对输入</div>
+<p><button id="exit" type="button">请求退出 (X)</button><button id="reset" type="button">清空记录</button></p>
+<pre id="status" aria-live="polite"></pre>
+<pre id="log"></pre>
+<script src="fixture.js"></script>
+</html>

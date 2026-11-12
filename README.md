@@ -60,10 +60,10 @@ With Python 3.11+, install the packaging tool and package the signed app:
 python3 -m pip install dmgbuild==1.6.7
 python3 packaging/build-dmg.py \
   "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.3-macOS-arm64-Installer.dmg"
+  "PokeBonk-Rust-0.1.4-macOS-arm64-Installer.dmg"
 python3 packaging/build-dmg.py \
   "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.3-macOS-x86_64-Installer.dmg"
+  "PokeBonk-Rust-0.1.4-macOS-x86_64-Installer.dmg"
 ```
 
 The image opens in a minimal 640 × 360 icon view with a warm Retina background,
@@ -306,3 +306,33 @@ positions stayed unchanged, and the removed paragraph was hidden. The callback
 also preserved caller registers; both the outer window and directory page
 returned the expected warm cream background brushes. Windows hardware visual
 checks remain pending.
+
+## 0.1.4 — macOS game pointer lock
+
+WKWebView does not expose the browser Pointer Lock host delegate used by the game.
+The macOS bridge now captures relative mouse input only when the official game
+calls `requestPointerLock()`; opening the app or showing a menu never captures it.
+Native confirmation precedes `pointerlockchange`, and movement carries the current
+mouse buttons and Shift/Control/Alt/Command state. Cocoa supplies accelerated input,
+so raw/unadjusted requests explicitly reject with `NotSupportedError`, allowing the
+game to fall back to the normal request. Windows retains WebView2's native API.
+
+Esc, loss of focus, navigation and removal of the locked element release capture.
+Returning to the foreground does not capture again until the game requests it.
+Only the active official game window can invoke the new native command. Input is
+monitored within this application; no global keyboard/mouse monitor or Accessibility
+permission is used. Audio muting and installer artwork are unchanged.
+
+Local regression fixture (separate identifier; no game account or save data):
+
+```sh
+python3 -m http.server 18766 --bind 127.0.0.1 --directory src-tauri/examples/pointer_lock
+# In another terminal:
+cargo run --manifest-path src-tauri/Cargo.toml --example pointer_lock
+```
+
+Verify idle/menu state stays unlocked; request lock, release the mouse buttons and
+move; check nonzero relative movement with buttons=0. Then test X, Esc and switching
+away, including a new request after returning. Esc may be consumed by the native
+host before a DOM key event; verify that the locked element clears and change
+count increases. JavaScript tests run with `npm run test:bridge`.
