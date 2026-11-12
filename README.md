@@ -60,10 +60,10 @@ With Python 3.11+, install the packaging tool and package the signed app:
 python3 -m pip install dmgbuild==1.6.7
 python3 packaging/build-dmg.py \
   "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.2-macOS-arm64-Installer.dmg"
+  "PokeBonk-Rust-0.1.3-macOS-arm64-Installer.dmg"
 python3 packaging/build-dmg.py \
   "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.2-macOS-x86_64-Installer.dmg"
+  "PokeBonk-Rust-0.1.3-macOS-x86_64-Installer.dmg"
 ```
 
 The image opens in a minimal 640 × 360 icon view with a warm Retina background,
@@ -192,6 +192,17 @@ python tests/release_test.py
 The manifest embeds signature content, uses fixed architecture keys and refuses
 to generate a partial three-platform feed. Updater packages are `.exe` on Windows
 and `.app.tar.gz` on macOS; the themed DMGs remain for manual installation.
+
+Before creating a draft, the release workflow runs a read-only Rust updater probe
+against all three real signed packages. The local HTTP fixture also checks an
+already-current client, a tampered payload, a signed-version mismatch and a
+missing platform. It never installs or opens the game. To run it locally after
+collecting the three signed packages:
+
+```sh
+cargo build --manifest-path src-tauri/Cargo.toml --locked --example updater_probe
+python tests/updater_integration.py src-tauri/target/debug/examples/updater_probe dist updater-verification.json
+```
 
 ## Implementation checkpoints
 
