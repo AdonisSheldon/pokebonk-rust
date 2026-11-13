@@ -170,8 +170,10 @@ API: https://v2.tauri.app/plugin/updater/
 Use the standalone repository https://github.com/AdonisSheldon/pokebonk-rust.
 The workflow checks all three targets on pushes and pull requests. A version tag
 also builds signed updater artifacts and the existing themed installers, then
-creates a draft release after every target succeeds. Publish that draft only
-after reviewing its installers and `latest.json`; the clients then see it.
+automatically publishes a Latest release after all three targets and the updater
+verification succeed. Assets are uploaded to a draft first; a failed build,
+verification or upload prevents publication. Published assets are never overwritten.
+The clients see the new `latest.json` on their next automatic or manual check.
 The signing secret is supplied only to the release packaging step, not ordinary
 pull-request checks. The release tag must equal `v` plus the application version.
 
