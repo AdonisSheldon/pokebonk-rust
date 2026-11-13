@@ -60,10 +60,10 @@ With Python 3.11+, install the packaging tool and package the signed app:
 python3 -m pip install dmgbuild==1.6.7
 python3 packaging/build-dmg.py \
   "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.5-macOS-arm64-Installer.dmg"
+  "PokeBonk-Rust-0.1.6-macOS-arm64-Installer.dmg"
 python3 packaging/build-dmg.py \
   "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.5-macOS-x86_64-Installer.dmg"
+  "PokeBonk-Rust-0.1.6-macOS-x86_64-Installer.dmg"
 ```
 
 The image opens in a minimal 640 × 360 icon view with a warm Retina background,
@@ -345,3 +345,26 @@ Version tags publish as Latest after all three signed builds and the genuine
 updater verification succeed. This release uses that automated publication path
 and the existing in-app updater. Game input, focus muting and installer artwork
 retain the behavior of 0.1.4.
+
+## 0.1.6 — visible update progress and system language
+
+Native menus, confirmation dialogs and update messages use Chinese when the
+system display language is Chinese, otherwise English. The language is selected
+at startup; no application language setting is required.
+
+After confirming an upgrade, a compact PokéBonk window displays downloaded bytes
+and the actual percentage. Unknown download sizes, signature verification and
+installation use an indeterminate bar. Errors close the progress window before
+showing a native message. The local page has no granted IPC commands, and this
+temporary window is excluded from saved window state.
+
+The progress window is provided by the client initiating an update: clients up
+to 0.1.5 still show their existing menu percentage while installing this version.
+Updates initiated by 0.1.6 use the new window.
+
+Read-only native preview (downloads and verifies the public 0.1.5 package, then
+simulates the installation/restart display; never installs or loads the game):
+
+```sh
+cargo run --manifest-path src-tauri/Cargo.toml --locked --features custom-protocol --example update_progress
+```

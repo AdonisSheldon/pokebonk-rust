@@ -1,6 +1,6 @@
 {
   "name": "pokebonk-rust-macos",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "scripts": {
     "dev": "tauri dev",
@@ -8,7 +8,7 @@
     "build:apple": "tauri build --bundles app --target aarch64-apple-darwin",
     "build:intel": "tauri build --bundles app --target x86_64-apple-darwin",
     "build:windows": "tauri build --bundles nsis --target x86_64-pc-windows-msvc",
-    "test:bridge": "node --test tests/bridge.test.cjs tests/pointer-lock.test.cjs"
+    "test:bridge": "node --test tests/bridge.test.cjs tests/pointer-lock.test.cjs tests/update-progress.test.cjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4"

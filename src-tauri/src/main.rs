@@ -2,9 +2,11 @@
 
 mod audio;
 mod display;
+mod locale;
 #[cfg(target_os = "macos")]
 mod pointer_lock;
 mod policy;
+mod update_progress;
 mod updater;
 
 use serde::Deserialize;
@@ -74,14 +76,24 @@ enum Action {
 }
 
 fn request_action(app: &AppHandle, action: Action) {
+    let language = *app.state::<locale::Language>();
     let state = app.state::<ExitState>();
     if state.confirming.swap(true, Ordering::SeqCst) {
         return;
     }
     let message = match action {
-        Action::Quit => "退出游戏？请先在游戏中保存当前对局。\nQuit the game? Save your current run first.",
-        Action::Relaunch => "重新启动？请先保存当前对局。\nRestart the client? Save your current run first.",
-        _ => "重新加载游戏？未保存的对局可能中断。\nReload the game? Unsaved play may be interrupted.",
+        Action::Quit => language.text(
+            "退出游戏？请先在游戏中保存当前对局。",
+            "Quit the game? Save your current run first.",
+        ),
+        Action::Relaunch => language.text(
+            "重新启动？请先保存当前对局。",
+            "Restart the client? Save your current run first.",
+        ),
+        _ => language.text(
+            "重新加载游戏？未保存的对局可能中断。",
+            "Reload the game? Unsaved play may be interrupted.",
+        ),
     };
     let handle = app.clone();
     let mut dialog = app
@@ -89,8 +101,8 @@ fn request_action(app: &AppHandle, action: Action) {
         .message(message)
         .title("PokeBonk Rust")
         .buttons(MessageDialogButtons::OkCancelCustom(
-            "继续 / Continue".into(),
-            "取消 / Cancel".into(),
+            language.text("继续", "Continue").into(),
+            language.text("取消", "Cancel").into(),
         ));
     if let Some(window) = app.get_webview_window("main") {
         dialog = dialog.parent(&window);
@@ -156,6 +168,7 @@ fn main() {
         }))
         .plugin(
             tauri_plugin_window_state::Builder::default()
+                .with_denylist(&[update_progress::LABEL])
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::SIZE
                         | tauri_plugin_window_state::StateFlags::POSITION
@@ -172,6 +185,7 @@ fn main() {
                 .build(),
         )
         .manage(ExitState::default())
+        .manage(locale::Language::system())
         .manage(audio::FocusAudio::default())
         .invoke_handler(tauri::generate_handler![
             display,
@@ -180,45 +194,49 @@ fn main() {
             pointer_lock
         ])
         .setup(|app| {
+            let language = *app.state::<locale::Language>();
             let check_updates = MenuItem::with_id(
                 app,
                 "check-updates",
-                "检查更新 / Check for Updates…",
+                language.text("检查更新…", "Check for Updates…"),
                 true,
                 None::<&str>,
             )?;
             app.manage(updater::UpdaterState::new(check_updates.clone()));
             let app_menu = SubmenuBuilder::new(app, "PokeBonk Rust")
-                .about(None)
+                .about_with_text(language.text("关于 PokéBonk", "About PokéBonk"), None)
                 .item(&check_updates)
                 .separator()
-                .hide()
-                .hide_others()
-                .show_all()
+                .hide_with_text(language.text("隐藏 PokéBonk", "Hide PokéBonk"))
+                .hide_others_with_text(language.text("隐藏其他应用", "Hide Others"))
+                .show_all_with_text(language.text("显示全部", "Show All"))
                 .separator()
-                .quit()
+                .quit_with_text(language.text("退出 PokéBonk", "Quit PokéBonk"))
                 .build()?;
-            let game_menu = SubmenuBuilder::new(app, "游戏 / Game")
-                .text("fullscreen", "切换全屏 / Toggle Fullscreen (F11)")
-                .text("reload", "重新加载 / Reload")
-                .text("reconnect", "重新连接 / Reconnect")
+            let game_menu = SubmenuBuilder::new(app, language.text("游戏", "Game"))
+                .text(
+                    "fullscreen",
+                    language.text("切换全屏 (F11)", "Toggle Fullscreen (F11)"),
+                )
+                .text("reload", language.text("重新加载", "Reload"))
+                .text("reconnect", language.text("重新连接", "Reconnect"))
                 .separator()
-                .text("website", "在浏览器打开 / Open in Browser")
+                .text("website", language.text("在浏览器打开", "Open in Browser"))
                 .build()?;
-            let edit_menu = SubmenuBuilder::new(app, "编辑 / Edit")
-                .undo()
-                .redo()
+            let edit_menu = SubmenuBuilder::new(app, language.text("编辑", "Edit"))
+                .undo_with_text(language.text("撤销", "Undo"))
+                .redo_with_text(language.text("重做", "Redo"))
                 .separator()
-                .cut()
-                .copy()
-                .paste()
-                .select_all()
+                .cut_with_text(language.text("剪切", "Cut"))
+                .copy_with_text(language.text("复制", "Copy"))
+                .paste_with_text(language.text("粘贴", "Paste"))
+                .select_all_with_text(language.text("全选", "Select All"))
                 .build()?;
-            let window_menu = SubmenuBuilder::new(app, "窗口 / Window")
-                .minimize()
-                .maximize()
+            let window_menu = SubmenuBuilder::new(app, language.text("窗口", "Window"))
+                .minimize_with_text(language.text("最小化", "Minimize"))
+                .maximize_with_text(language.text("最大化", "Maximize"))
                 .separator()
-                .close_window()
+                .close_window_with_text(language.text("关闭窗口", "Close Window"))
                 .build()?;
             app.set_menu(
                 MenuBuilder::new(app)
@@ -294,17 +312,25 @@ fn main() {
             "check-updates" => updater::check(app, true),
             _ => {}
         })
-        .on_window_event(|window, event| match event {
-            WindowEvent::CloseRequested { api, .. } => {
-                api.prevent_close();
-                request_action(window.app_handle(), Action::Quit);
-            }
-            WindowEvent::Resized(_) => {
-                if let Some(w) = window.app_handle().get_webview_window("main") {
-                    let _ = w.eval("window.dispatchEvent(new Event('pb:window-change'))");
+        .on_window_event(|window, event| {
+            if window.label() != "main" {
+                if let WindowEvent::CloseRequested { api, .. } = event {
+                    api.prevent_close();
                 }
+                return;
             }
-            _ => {}
+            match event {
+                WindowEvent::CloseRequested { api, .. } => {
+                    api.prevent_close();
+                    request_action(window.app_handle(), Action::Quit);
+                }
+                WindowEvent::Resized(_) => {
+                    if let Some(w) = window.app_handle().get_webview_window("main") {
+                        let _ = w.eval("window.dispatchEvent(new Event('pb:window-change'))");
+                    }
+                }
+                _ => {}
+            }
         })
         .build(tauri::generate_context!())
         .expect("Could not start PokeBonk Rust");

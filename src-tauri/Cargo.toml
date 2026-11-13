@@ -1,6 +1,6 @@
 [package]
 name = "pokebonk-rust"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "Independent macOS and Windows Rust client for the PokéBonk web game"
 publish = false
@@ -21,6 +21,7 @@ tokio = { version = "1", features = ["time", "sync"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.5"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSLocale", "NSArray", "NSString"] }
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSWindow", "NSEvent", "NSCursor", "block2"] }
 objc2-web-kit = { version = "0.3.2", default-features = false, features = ["std", "WKWebView", "block2"] }
 block2 = "0.6.2"

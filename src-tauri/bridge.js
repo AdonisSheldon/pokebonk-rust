@@ -22,7 +22,7 @@
   Object.defineProperty(window, 'pokebonkDesktop', {
     value: Object.freeze({
       version: '1.4.0',
-      clientVersion: '0.1.5',
+      clientVersion: '0.1.6',
       engine: 'webkit',
       platform: 'darwin',
       display,
