@@ -60,10 +60,10 @@ With Python 3.11+, install the packaging tool and package the signed app:
 python3 -m pip install dmgbuild==1.6.7
 python3 packaging/build-dmg.py \
   "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.4-macOS-arm64-Installer.dmg"
+  "PokeBonk-Rust-0.1.5-macOS-arm64-Installer.dmg"
 python3 packaging/build-dmg.py \
   "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/PokeBonk Rust.app" \
-  "PokeBonk-Rust-0.1.4-macOS-x86_64-Installer.dmg"
+  "PokeBonk-Rust-0.1.5-macOS-x86_64-Installer.dmg"
 ```
 
 The image opens in a minimal 640 × 360 icon view with a warm Retina background,
@@ -338,3 +338,10 @@ move; check nonzero relative movement with buttons=0. Then test X, Esc and switc
 away, including a new request after returning. Esc may be consumed by the native
 host before a DOM key event; verify that the locked element clears and change
 count increases. JavaScript tests run with `npm run test:bridge`.
+
+## 0.1.5 — automatic GitHub release publication
+
+Version tags publish as Latest after all three signed builds and the genuine
+updater verification succeed. This release uses that automated publication path
+and the existing in-app updater. Game input, focus muting and installer artwork
+retain the behavior of 0.1.4.
